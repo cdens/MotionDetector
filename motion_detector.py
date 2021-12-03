@@ -1,4 +1,4 @@
-                                                     #! /usr/bin/env python3
+#! /usr/bin/env python3
 #
 # Code to control motion sensor that activates audio
 
