@@ -43,7 +43,7 @@ class ButtonThread(threading.Thread):
         # GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.button_num, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         
-    def reset_status(self,status):
+    def reset_status(self):
         self._status = 0
         
     def get_status(self):
