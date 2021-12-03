@@ -140,7 +140,9 @@ class LED_Thread(threading.Thread):
         print("starting LED thread")
         try:
             while True:
-                if (datetime.utcnow() - self.last_switch).total_seconds() >= self.blinkrate:
+                if self._mode == 0:
+                    GPIO.output(self.ledPin, GPIO.LOW)
+                elif (datetime.utcnow() - self.last_switch).total_seconds() >= self.blinkrate:
                     self.switch_light()
                         
                 time.sleep(0.05) 
