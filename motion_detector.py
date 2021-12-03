@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+                                                     #! /usr/bin/env python3
 #
 # Code to control motion sensor that activates audio
 
@@ -124,6 +124,20 @@ class LED_Thread(threading.Thread):
             self.blinkrate = 0.5 #blink at 1 Hz (change status every 0.5 sec)
         elif mode == 3: #mode 3 = in delay between activations
             self.blinkrate = 1 #blink at 0.5 Hz (change status every 1 sec)
+            
+            
+    #unique blink pattern to acknowledge shutdown
+    def acknowledge_blink(self):
+        cmode = self._mode
+        self.set_mode(0) #deactivate LED
+        time.sleep(0.25)
+        for i in range(5):
+            if i != 3:
+                GPIO.output(self.ledPin,GPIO.HIGH)
+            time.sleep(0.2)
+            GPIO.output(self.ledPin,GPIO.LOW)
+            time.sleep(0.2)
+        self.set_mode(cmode)
         
     def switch_light(self):
         # print("switching LED")
@@ -243,6 +257,10 @@ class AudioThread(threading.Thread):
         self.request_play = False
         self.audio_file = audio_file
         
+        #setting volume to 85%
+        cmd = "sudo amixer cset numid=1 85%" 
+        subprocess.run(cmd.split())
+        
         
     #call from parent thread when it is time to play the audio
     def request_play_audio(self):
@@ -327,6 +345,7 @@ if __name__ == "__main__":
             buttonStatus = buttonMonitor.get_status()
             if buttonStatus == 3:
                 print("Shutting down")
+                ledMonitor.acknowledge_blink() #blink to acknowledge poweroff command
                 cmd = "sudo shutdown -h now" #power off Pi
                 subprocess.run(cmd.split())
                 
