@@ -110,6 +110,8 @@ class LED_Thread(threading.Thread):
         GPIO.output(self.ledPin, GPIO.LOW)
         self.last_switch = datetime.utcnow()
         
+    def get_mode(self):
+        return self.mode
         
     def set_mode(self,mode):
         print(f"setting LED mode to {mode}")
@@ -124,7 +126,7 @@ class LED_Thread(threading.Thread):
             self.blinkrate = 1 #blink at 0.5 Hz (change status every 1 sec)
         
     def switch_light(self):
-        print("switching LED")
+        # print("switching LED")
         if self.current_status == 0:
             GPIO.output(self.ledPin, GPIO.HIGH)
             self.current_status = 1
@@ -337,10 +339,13 @@ if __name__ == "__main__":
                 systemActive = True
                 
             if not systemActive:
-                ledMonitor.set_mode(0)
+                desiredLEDmode = 0
             else:
-                ledMonitor.set_mode(motionThread.delay_status)
-                            
+                desiredLEDmode = motionThread.delay_status
+                
+            #switching LED mode if necessary
+            if desiredLEDmode != ledMonitor.get_mode()
+                ledMonitor.set_mode(desiredLEDmode)
             time.sleep(0.1)
             
         
