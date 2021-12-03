@@ -338,6 +338,8 @@ if __name__ == "__main__":
                 motionThread.deactivate()
                 systemActive = True
                 
+            buttonMonitor.reset_status()
+                
             if not systemActive:
                 desiredLEDmode = 0
             else:
