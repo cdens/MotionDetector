@@ -111,7 +111,7 @@ class LED_Thread(threading.Thread):
         self.last_switch = datetime.utcnow()
         
     def get_mode(self):
-        return self.mode
+        return self._mode
         
     def set_mode(self,mode):
         print(f"setting LED mode to {mode}")
@@ -344,7 +344,7 @@ if __name__ == "__main__":
                 desiredLEDmode = motionThread.delay_status
                 
             #switching LED mode if necessary
-            if desiredLEDmode != ledMonitor.get_mode()
+            if desiredLEDmode != ledMonitor.get_mode():
                 ledMonitor.set_mode(desiredLEDmode)
             time.sleep(0.1)
             
