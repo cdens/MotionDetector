@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 import time
 import pygame #for audio
 import subprocess
+import threading
 
 
 def setup():
@@ -91,7 +92,7 @@ class LED_Thread(threading.Thread):
         super().__init__()
         
         self.ledPin = ledPin
-        self._mode = 1 #initializes blinking as in pre-activation period
+        self.set_mode(1) #initializes blinking as in pre-activation period
         
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.ledPin, GPIO.OUT)
@@ -113,7 +114,7 @@ class LED_Thread(threading.Thread):
             self.blinkrate = 1 #blink at 0.5 Hz (change status every 1 sec)
         
     def switch_light(self):
-        if self.current_status = 0:
+        if self.current_status == 0:
             GPIO.output(self.ledPin, GPIO.HIGH)
             self.current_status = 1
         else:
@@ -126,7 +127,7 @@ class LED_Thread(threading.Thread):
         
         try:
             while True:
-                if (self.last_switch - datetime.utcnow()).total_seconds >= self.blinkrate:
+                if (self.last_switch - datetime.utcnow()).total_seconds() >= self.blinkrate:
                     self.switch_light()
                         
                 time.sleep(0.05) 
@@ -155,15 +156,16 @@ class MotionThread(threading.Thread):
         self.pin = motionPin
         GPIO.setup(self.pin, GPIO.IN)
         
+        self.refresh_activation_limit = refresh_activation_limit*60 #time (minutes) required between sensor triggers 
+        
         self._activated = False
         self.set_activation_time(initial_delay)
         
-        self.refresh_activation_limit = refresh_activation_limit*60 #time (minutes) required between sensor triggers 
     
         
         
     #adjusts when the motion sensor thinks it last activated so it can't activate the first time until the specified initial delay (minutes) has passed
-    def set_activation_time(self,initial_delay)
+    def set_activation_time(self,initial_delay):
         self._last_activated = datetime.utcnow() - timedelta(seconds = (self.refresh_activation_limit - initial_delay*60)) 
         self.delay_status = 1 #changes to 1 when activated and 2 when in post-activation delay
         
@@ -200,7 +202,7 @@ class MotionThread(threading.Thread):
                     
                 oldPinStatus = newPinStatus
                     
-                sleep(0.5) #2 Hz refresh rate
+                time.sleep(0.5) #2 Hz refresh rate
                 
         except KeyboardInterrupt:
             cleanup()
@@ -269,7 +271,7 @@ if __name__ == "__main__":
     
     #initiating motion sensor
     motionPin = 12
-    motionThread = MotionThread(pin=motionPin, initial_delay=2, refresh_activation_rate=10) #refresh = 10 minutes
+    motionThread = MotionThread(pin=motionPin, initial_delay=2, refresh_activation_limit=10) #refresh = 10 minutes
     motionThread.start()
     
     #initiating audio thread
@@ -297,7 +299,7 @@ if __name__ == "__main__":
     try:
     
         while True:
-            if systemActive and motionThread.getStatus():
+            if systemActive and motionThread.get_status():
                 motionThread.deactivate()
                 audioThread.request_play_audio()
             
