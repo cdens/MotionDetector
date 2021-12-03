@@ -34,11 +34,13 @@ class ButtonThread(threading.Thread):
     def __init__(self, button_num):
         super().__init__()
         
+        print("initializing button thread")
+        
         self.button_num = button_num
         self._status = 0
         self._locked = False
         
-        GPIO.setmode(GPIO.BOARD)
+        # GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.button_num, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         
     def reset_status(self,status):
@@ -48,6 +50,8 @@ class ButtonThread(threading.Thread):
         return self._status
         
     def run(self):
+        
+        print("starting button thread")
         
         try:
             while True:
@@ -65,10 +69,13 @@ class ButtonThread(threading.Thread):
                     
                     if buttonTime >= 6: #power off
                         self._status = 3
+                        print("button status 3 (poweroff)")
                     elif buttonTime >= 3: #deactivate
                         self._status = 2
+                        print("button status 2 (deactivate)")
                     elif buttonTime >= .3: #activate/reactivate
                         self._status = 1
+                        print("button status 1 (reactivate)")
                         
                         
         except KeyboardInterrupt:    
@@ -91,10 +98,12 @@ class LED_Thread(threading.Thread):
     def __init__(self, ledPin):
         super().__init__()
         
+        print("initializing LED thread")
+        
         self.ledPin = ledPin
         self.set_mode(1) #initializes blinking as in pre-activation period
         
-        GPIO.setmode(GPIO.BOARD)
+        # GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.ledPin, GPIO.OUT)
         
         self.current_status = 0 #0 for low, 1 for high
@@ -103,6 +112,7 @@ class LED_Thread(threading.Thread):
         
         
     def set_mode(self,mode):
+        print(f"setting LED mode to {mode}")
         self._mode = mode
         if mode == 0: #deactivated - system doesn't blink (blinkrate var not used)
             self.blinkrate == 1E12
@@ -114,6 +124,7 @@ class LED_Thread(threading.Thread):
             self.blinkrate = 1 #blink at 0.5 Hz (change status every 1 sec)
         
     def switch_light(self):
+        print("switching LED")
         if self.current_status == 0:
             GPIO.output(self.ledPin, GPIO.HIGH)
             self.current_status = 1
@@ -124,10 +135,10 @@ class LED_Thread(threading.Thread):
             
         
     def run(self):
-        
+        print("starting LED thread")
         try:
             while True:
-                if (self.last_switch - datetime.utcnow()).total_seconds() >= self.blinkrate:
+                if (datetime.utcnow() - self.last_switch).total_seconds() >= self.blinkrate:
                     self.switch_light()
                         
                 time.sleep(0.05) 
@@ -151,8 +162,10 @@ class MotionThread(threading.Thread):
     
     def __init__(self,pin,initial_delay, refresh_activation_limit):
         
+        print("initializing motion thread")
+        
         super().__init__()
-        GPIO.setmode(GPIO.BOARD)
+        # GPIO.setmode(GPIO.BOARD)
         self.pin = motionPin
         GPIO.setup(self.pin, GPIO.IN)
         
@@ -178,7 +191,7 @@ class MotionThread(threading.Thread):
         
             
     def run(self):
-        
+        print("starting motion thread")
         try:
             oldPinStatus = True
             
@@ -196,6 +209,7 @@ class MotionThread(threading.Thread):
                     
                     #checking 
                     if not oldPinStatus and newPinStatus:
+                        print("motion detected")
                         self._activated = True
                         self._last_activated = datetime.utcnow()
                         self.delay_status = 3
@@ -219,7 +233,7 @@ class MotionThread(threading.Thread):
 class AudioThread(threading.Thread):
     
     def __init__(self,audio_file):
-        
+        print("initializing audio thread")
         super().__init__()
         self._is_playing = False
         self.request_play = False
@@ -228,6 +242,7 @@ class AudioThread(threading.Thread):
         
     #call from parent thread when it is time to play the audio
     def request_play_audio(self):
+        print(f"requesting to play audio (_is_playing = {self._is_playing}")
         if not self._is_playing:
             self._is_playing = True
             self.request_play = True
@@ -235,6 +250,7 @@ class AudioThread(threading.Thread):
          
     #constantly running loop monitoring to play audio   
     def run(self):
+        print("starting audio thread")
         while True:
             if self.request_play:
                 self._is_playing = True
@@ -247,6 +263,7 @@ class AudioThread(threading.Thread):
             
     #play audio (WAV file) with pygame
     def play_audio(self):
+        print("playing audio")
         pygame.mixer.init()
         pygame.mixer.music.load(self.audio_file)
         pygame.mixer.music.play()
@@ -305,13 +322,16 @@ if __name__ == "__main__":
             
             buttonStatus = buttonMonitor.get_status()
             if buttonStatus == 3:
+                print("Shutting down")
                 cmd = "sudo shutdown -h now" #power off Pi
                 subprocess.run(cmd.split())
                 
             elif buttonStatus == 2:
+                print("Deactivating")
                 systemActive = False #deactivate motion sensor
                 
             elif buttonStatus == 1:
+                print("Reactivating")
                 motionThread.set_activation_time(1) #will wait 1 min to activate
                 motionThread.deactivate()
                 systemActive = True
