@@ -11,9 +11,9 @@
 import RPi.GPIO as GPIO
 from datetime import datetime, timedelta
 import time
-import pygame #for audio
 import subprocess
 import threading
+import logging
 
 
 def setup():
@@ -34,7 +34,7 @@ class ButtonThread(threading.Thread):
     def __init__(self, button_num):
         super().__init__()
         
-        print("initializing button thread")
+        logging.info("initializing button thread")
         
         self.button_num = button_num
         self._status = 0
@@ -51,7 +51,7 @@ class ButtonThread(threading.Thread):
         
     def run(self):
         
-        print("starting button thread")
+        logging.debug("starting button thread")
         
         try:
             while True:
@@ -69,13 +69,13 @@ class ButtonThread(threading.Thread):
                     
                     if buttonTime >= 6: #power off
                         self._status = 3
-                        print("button status 3 (poweroff)")
+                        logging.debug("button status 3 (poweroff)")
                     elif buttonTime >= 3: #deactivate
                         self._status = 2
-                        print("button status 2 (deactivate)")
+                        logging.debug("button status 2 (deactivate)")
                     elif buttonTime >= .3: #activate/reactivate
                         self._status = 1
-                        print("button status 1 (reactivate)")
+                        logging.debug("button status 1 (reactivate)")
                         
                         
         except KeyboardInterrupt:    
@@ -98,7 +98,7 @@ class LED_Thread(threading.Thread):
     def __init__(self, ledPin):
         super().__init__()
         
-        print("initializing LED thread")
+        logging.info("initializing LED thread")
         
         self.ledPin = ledPin
         self.set_mode(1) #initializes blinking as in pre-activation period
@@ -114,7 +114,7 @@ class LED_Thread(threading.Thread):
         return self._mode
         
     def set_mode(self,mode):
-        print(f"setting LED mode to {mode}")
+        logging.debug(f"setting LED mode to {mode}")
         self._mode = mode
         if mode == 0: #deactivated - system doesn't blink (blinkrate var not used)
             self.blinkrate == 1E12
@@ -125,6 +125,9 @@ class LED_Thread(threading.Thread):
         elif mode == 3: #mode 3 = in delay between activations
             self.blinkrate = 1 #blink at 0.5 Hz (change status every 1 sec)
             
+            
+    def set_on(self):
+        GPIO.output(self.ledPin,GPIO.HIGH)
             
     #unique blink pattern to acknowledge shutdown
     def acknowledge_blink(self):
@@ -140,7 +143,7 @@ class LED_Thread(threading.Thread):
         self.set_mode(cmode)
         
     def switch_light(self):
-        # print("switching LED")
+        # logging.info("switching LED")
         if self.current_status == 0:
             GPIO.output(self.ledPin, GPIO.HIGH)
             self.current_status = 1
@@ -151,7 +154,7 @@ class LED_Thread(threading.Thread):
             
         
     def run(self):
-        print("starting LED thread")
+        logging.debug("starting LED thread")
         try:
             while True:
                 if self._mode == 0:
@@ -180,7 +183,7 @@ class MotionThread(threading.Thread):
     
     def __init__(self,pin,initial_delay, refresh_activation_limit):
         
-        print("initializing motion thread")
+        logging.info("initializing motion thread")
         
         super().__init__()
         # GPIO.setmode(GPIO.BOARD)
@@ -209,7 +212,7 @@ class MotionThread(threading.Thread):
         
             
     def run(self):
-        print("starting motion thread")
+        logging.debug("starting motion thread")
         try:
             oldPinStatus = True
             
@@ -227,7 +230,7 @@ class MotionThread(threading.Thread):
                     
                     #checking 
                     if not oldPinStatus and newPinStatus:
-                        print("motion detected")
+                        logging.debug("motion detected")
                         self._activated = True
                         self._last_activated = datetime.utcnow()
                         self.delay_status = 3
@@ -250,8 +253,10 @@ class MotionThread(threading.Thread):
 ##########################################################################################################
 class AudioThread(threading.Thread):
     
+    import pygame as self.pygame
+    
     def __init__(self,audio_file):
-        print("initializing audio thread")
+        logging.info("initializing audio thread")
         super().__init__()
         self._is_playing = False
         self.request_play = False
@@ -264,7 +269,7 @@ class AudioThread(threading.Thread):
         
     #call from parent thread when it is time to play the audio
     def request_play_audio(self):
-        print(f"requesting to play audio (_is_playing = {self._is_playing}")
+        logging.debug(f"requesting to play audio (_is_playing = {self._is_playing}")
         if not self._is_playing:
             self._is_playing = True
             self.request_play = True
@@ -272,7 +277,7 @@ class AudioThread(threading.Thread):
          
     #constantly running loop monitoring to play audio   
     def run(self):
-        print("starting audio thread")
+        logging.debug("starting audio thread")
         while True:
             if self.request_play:
                 self._is_playing = True
@@ -285,11 +290,11 @@ class AudioThread(threading.Thread):
             
     #play audio (WAV file) with pygame
     def play_audio(self):
-        print("playing audio")
-        pygame.mixer.init()
-        pygame.mixer.music.load(self.audio_file)
-        pygame.mixer.music.play()
-        while pygame.mixer.music.get_busy() == True:
+        logging.debug("playing audio")
+        self.pygame.mixer.init()
+        self.pygame.mixer.music.load(self.audio_file)
+        self.pygame.mixer.music.play()
+        while self.pygame.mixer.music.get_busy() == True:
             time.sleep(0.1)
             
         
@@ -305,18 +310,7 @@ class AudioThread(threading.Thread):
 
 if __name__ == "__main__":
     
-    
-    setup() #using BOARD pin numbers (not BCM)
-    
-    #initiating motion sensor
-    motionPin = 12
-    motionThread = MotionThread(pin=motionPin, initial_delay=2, refresh_activation_limit=10) #refresh = 10 minutes
-    motionThread.start()
-    
-    #initiating audio thread
-    audioFile = "soundsource.wav" 
-    audioThread = AudioThread(audio_file = audioFile)
-    audioThread.start()
+    logging.basicConfig(filename=f'../motion_detector_{datetime.utcnow():%Y%m%d_%H%M}.log', encoding='utf-8', level=logging.DEBUG)
     
     #initiating button monitor
     buttonPin = 10 #connect button gpio to 10 and button ground to 9
@@ -327,9 +321,27 @@ if __name__ == "__main__":
     #initiating LED device thread
     ledPin = 16
     ledMonitor = LED_Thread(ledPin=ledPin)
-    ledMonitor.start()
-    ledMonitor.set_mode(1) 
+    ledMonitor.set_on() #initally just on while device starting up
     #modes: 1=initial activation delay (5 Hz), 2 = activated (1 Hz), 3 = between activations (0.5Hz), 0 = deactivated (off)
+    
+    time.sleep(60) #1 minute delay on startup
+    
+    #starting LED monitor (sets mode 1)
+    ledMonitor.start()
+    
+    setup() #using BOARD pin numbers (not BCM)
+    
+    #initiating motion sensor
+    motionPin = 12
+    motionThread = MotionThread(pin=motionPin, initial_delay=0.5, refresh_activation_limit=10) #refresh = 10 minutes
+    motionThread.start()
+    
+    #initiating audio thread
+    audioFile = "soundsource.wav" 
+    audioThread = AudioThread(audio_file = audioFile)
+    audioThread.start()
+    
+    
     
     
     systemActive = True #whether or not system is active
@@ -344,18 +356,18 @@ if __name__ == "__main__":
             
             buttonStatus = buttonMonitor.get_status()
             if buttonStatus == 3:
-                print("Shutting down")
+                logging.info("Shutting down")
                 ledMonitor.acknowledge_blink() #blink to acknowledge poweroff command
                 cmd = "sudo shutdown -h now" #power off Pi
                 subprocess.run(cmd.split())
                 
             elif buttonStatus == 2:
-                print("Deactivating")
+                logging.info("Deactivating")
                 systemActive = False #deactivate motion sensor
                 
             elif buttonStatus == 1:
-                print("Reactivating")
-                motionThread.set_activation_time(1) #will wait 1 min to activate
+                logging.info("Reactivating")
+                motionThread.set_activation_time(0.25) #will wait 15 sec to activate
                 motionThread.deactivate()
                 systemActive = True
                 
