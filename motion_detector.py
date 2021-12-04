@@ -253,7 +253,7 @@ class MotionThread(threading.Thread):
 ##########################################################################################################
 class AudioThread(threading.Thread):
     
-    import pygame as self.pygame
+    import pygame
     
     def __init__(self,audio_file):
         logging.info("initializing audio thread")
@@ -310,7 +310,8 @@ class AudioThread(threading.Thread):
 
 if __name__ == "__main__":
     
-    logging.basicConfig(filename=f'../motion_detector_{datetime.utcnow():%Y%m%d_%H%M}.log', encoding='utf-8', level=logging.DEBUG)
+    logging.basicConfig(filename=f'../motion_detector_{datetime.utcnow():%Y%m%d_%H%M}.log', level=logging.DEBUG)
+    setup() #using BOARD pin numbers (not BCM)
     
     #initiating button monitor
     buttonPin = 10 #connect button gpio to 10 and button ground to 9
@@ -328,8 +329,6 @@ if __name__ == "__main__":
     
     #starting LED monitor (sets mode 1)
     ledMonitor.start()
-    
-    setup() #using BOARD pin numbers (not BCM)
     
     #initiating motion sensor
     motionPin = 12
