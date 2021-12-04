@@ -253,7 +253,7 @@ class MotionThread(threading.Thread):
 ##########################################################################################################
 class AudioThread(threading.Thread):
     
-    import pygame
+    # import pygame
     
     def __init__(self,audio_file):
         logging.info("initializing audio thread")
@@ -261,6 +261,7 @@ class AudioThread(threading.Thread):
         self._is_playing = False
         self.request_play = False
         self.audio_file = audio_file
+        self.audio_command = "aplay -D hw:0,0 /home/pi/MotionDetector/soundsource.wav" #command to play audio file
         
         #setting volume to 85%
         cmd = "sudo amixer cset numid=1 85%" 
@@ -291,12 +292,12 @@ class AudioThread(threading.Thread):
     #play audio (WAV file) with pygame
     def play_audio(self):
         logging.debug("playing audio")
-        self.pygame.mixer.init()
-        self.pygame.mixer.music.load(self.audio_file)
-        self.pygame.mixer.music.play()
-        while self.pygame.mixer.music.get_busy() == True:
-            time.sleep(0.1)
-            
+        # self.pygame.mixer.init()
+        # self.pygame.mixer.music.load(self.audio_file)
+        # self.pygame.mixer.music.play()
+        # while self.pygame.mixer.music.get_busy() == True:
+        #     time.sleep(0.1)
+        subprocess.run(self.audio_command.split())
         
             
             
