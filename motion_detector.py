@@ -310,7 +310,7 @@ class AudioThread(threading.Thread):
 
 if __name__ == "__main__":
     
-    logging.basicConfig(filename=f'../motion_detector_{datetime.utcnow():%Y%m%d_%H%M}.log', level=logging.DEBUG)
+    logging.basicConfig(filename=f'motion_detector_{datetime.utcnow():%Y%m%d_%H%M}.log', level=logging.DEBUG)
     setup() #using BOARD pin numbers (not BCM)
     
     #initiating button monitor
@@ -325,7 +325,7 @@ if __name__ == "__main__":
     ledMonitor.set_on() #initally just on while device starting up
     #modes: 1=initial activation delay (5 Hz), 2 = activated (1 Hz), 3 = between activations (0.5Hz), 0 = deactivated (off)
     
-    time.sleep(60) #1 minute delay on startup
+    # time.sleep(60) #1 minute delay on startup
     
     #starting LED monitor (sets mode 1)
     ledMonitor.start()
