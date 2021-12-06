@@ -195,7 +195,7 @@ class MotionThread(threading.Thread):
         
         GPIO.output(self.trigPin, GPIO.LOW) #set trigger pin LOW
         
-        self.range_values = []
+        self._range_values = []
         self.Nobs = Nobs #number of obs to determine mean in list
         
         self.distThresh = distThresh #distance change threshold (cm) to detect motion
@@ -223,7 +223,7 @@ class MotionThread(threading.Thread):
         
     
     def return_current_range(self): #callable method to retrieve last measured range
-        return self._range
+        return self._range, self._range_values
         
         
     #retrieve a single range measurement from ultrasonic sensor
@@ -257,14 +257,14 @@ class MotionThread(threading.Thread):
         self._range = self.get_range()
         
         #triggers motion detector when range on sensor differs from observed range by measured amount
-        if np.abs(self._range - np.nanmean(np.asarray(self.range_values))) >= self.distThresh:
+        if np.abs(self._range - np.nanmean(np.asarray(self._range_values))) >= self.distThresh:
             detected = True
             
-        self.range_values.append(self._range) #adding new ob to range calculations for future iterations
+        self._range_values.append(self._range) #adding new ob to range calculations for future iterations
         
         #keeping list to specified length if necessary
-        if len(self.range_values) > self.Nobs:
-            self.range_values.pop(0) #drop the first (oldest) observation
+        if len(self._range_values) > self.Nobs:
+            self._range_values.pop(0) #drop the first (oldest) observation
         
         return detected
         

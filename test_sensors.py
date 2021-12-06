@@ -21,9 +21,8 @@ def test_audio_range(echoPin, trigPin):
     while True:
         
         #get info
-        crange = motionThread.return_current_range()
+        crange, rangevals = motionThread.return_current_range()
         isActive = motionThread.get_status()
-        rangevals = motionThread.range_values()
         motionThread.deactivate()
         
         print(f"Range: {crange}, Motion: {isActive} (Mean: {np.nanmean(np.asarray(rangevals))})")
