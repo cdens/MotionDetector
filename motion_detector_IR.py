@@ -179,33 +179,22 @@ class LED_Thread(threading.Thread):
 #                           MOTION DETECTOR THREAD                                                       #
 ##########################################################################################################
     
-class MotionThread(threading.Thread):
+class MotionThread_IR(threading.Thread):
     
-    def __init__(self, echoPin, trigPin, distThresh, Nobs, initial_delay, refresh_activation_limit):
+    def __init__(self, pin, initial_delay, refresh_activation_limit):
         
         logging.info("initializing motion thread")
         
         super().__init__()
         # GPIO.setmode(GPIO.BOARD)
-        self.echoPin = echoPin
-        self.trigPin = trigPin
-        
-        GPIO.setup(self.echoPin, GPIO.IN)
-        GPIO.setup(self.trigPin, GPIO.OUT)
-        
-        GPIO.output(self.trigPin, GPIO.LOW) #set trigger pin LOW
-        
-        self.range_values = []
-        self.Nobs = Nobs #number of obs to determine mean in list
-        
-        self.distThresh = distThresh #distance change threshold (cm) to detect motion
+        self.pin = pin
+        GPIO.setup(self.pin, GPIO.IN)
         
         self.refresh_activation_limit = refresh_activation_limit*60 #time (minutes) required between sensor triggers 
         
         self._activated = False
         self.set_activation_time(initial_delay)
         
-        self._range = np.NaN
     
         
         
@@ -221,81 +210,34 @@ class MotionThread(threading.Thread):
     def deactivate(self): #for parent thread to deactivate motion trigger after acknowledging it
         self._activated = False
         
-    
-    def return_current_range(self): #callable method to retrieve last measured range
-        return self._range
-        
-        
-    #retrieve a single range measurement from ultrasonic sensor
-    def get_range(self):
-        
-        #send signal through trigger pin for 10 microseconds
-        GPIO.output(self.trigPin, GPIO.HIGH)
-        time.sleep(0.00001)
-        GPIO.output(self.trigPin, GPIO.LOW)
-        
-        #wait for echo signal to start
-        while GPIO.input(self.echoPin) == GPIO.LOW:
-            start = time.time() #constantly update start time, last value right before echoPin goes high
-            
-        #wait for echo signal to finish
-        while GPIO.input(self.echoPin) == GPIO.HIGH:
-            finish = time.time() #constantly update finish time, last value right before echoPin goes low
-        
-        pulselen = finish - start #total pulse length (corresponds to round trip time for sound)
-        
-        #speed of sound = 343 m/s
-        #distance (m) = time (s) * sound speed
-        #distance (cm) = time (s) / 2 (two way trip) * 100 (m -> cm); 343*100/2
-        distance_cm = np.round(17150.0 * pulselen, 1) #round to nearest mm (error is 3 mm anyways)
-        
-        return distance_cm
-        
-        
-    def check_range_diff(self):
-        detected = False
-        self._range = self.get_range()
-        
-        #triggers motion detector when range on sensor differs from observed range by measured amount
-        if np.abs(self._range - np.nanmean(np.asarray(self.range_values))) >= self.distThresh:
-            detected = True
-            
-        self.range_values.append(self._range) #adding new ob to range calculations for future iterations
-        
-        #keeping list to specified length if necessary
-        if len(self.range_values) > self.Nobs:
-            self.range_values.pop(0) #drop the first (oldest) observation
-        
-        return detected
-        
-        
             
     def run(self):
         logging.debug("starting motion thread")
         try:
+            oldPinStatus = True
             
             while True:
+                newPinStatus = GPIO.input(self.pin) == GPIO.HIGH
                 
                 #to set self.activated = True (which triggers audio in the main thread):
-                # the distance must differ from mean 5 previous values by greater than the threshold
+                # the pin must switch from LOW to HIGH (we don't care about HIGH to LOW)
+                # activated must have not already been set
                 # the previous activation must be outside the time limit assigned when initializing the thread
-                
-                #this function is called regardless of whether the system is "active" because it needs to 
-                #keep getting observations to create an accurate mean distance
-                detected = self.check_range_diff()
                 
                 #checking if activation delay is passed
                 if not self._activated and (datetime.utcnow() - self._last_activated).total_seconds() >= self.refresh_activation_limit:
                     self.delay_status = 2
                     
                     #checking 
-                    if detected:
+                    if not oldPinStatus and newPinStatus:
                         logging.debug("motion detected")
                         self._activated = True
                         self._last_activated = datetime.utcnow()
                         self.delay_status = 3
-                                    
-                time.sleep(0.2) # would be 5 Hz if not for time to calculate range
+                    
+                oldPinStatus = newPinStatus
+                    
+                time.sleep(0.5) #2 Hz refresh rate
                 
         except KeyboardInterrupt:
             cleanup()
@@ -383,16 +325,16 @@ if __name__ == "__main__":
     ledMonitor = LED_Thread(ledPin=ledPin)
     ledMonitor.set_on() #initally just on while device starting up
     #modes: 1=initial activation delay (5 Hz), 2 = activated (1 Hz), 3 = between activations (0.5Hz), 0 = deactivated (off)
-        
+    
+    # time.sleep(60) #1 minute delay on startup
+    
     #starting LED monitor (sets mode 1)
     ledMonitor.start()
     
     #initiating motion sensor
-    echoPin = 35 #returns echo time
-    trigPin = 36 #triggers range detector observation
-    distThresh = 5 #distance change in cm to trigger motion detector
-    motionThread = MotionThread(echoPin=echoPin, trigPin=trigPin, distThresh=distThresh, Nobs=20, initial_delay=0.5, refresh_activation_limit=10)
-    motionThread.start()
+    motionPin = 12
+    motionThread_IR = MotionThread_IR(pin=motionPin, initial_delay=0.5, refresh_activation_limit=10) #refresh = 10 minutes
+    motionThread_IR.start()
     
     #initiating audio thread
     audioFile = "soundsource.wav" 
@@ -408,9 +350,9 @@ if __name__ == "__main__":
     try:
     
         while True:
-            if systemActive and motionThread.get_status():
+            if systemActive and motionThread_IR.get_status():
                 audioThread.request_play_audio()
-            motionThread.deactivate()
+            motionThread_IR.deactivate()
             
             buttonStatus = buttonMonitor.get_status()
             if buttonStatus == 3:
@@ -425,8 +367,8 @@ if __name__ == "__main__":
                 
             elif buttonStatus == 1:
                 logging.info("Reactivating")
-                motionThread.set_activation_time(0.25) #will wait 15 sec to activate
-                motionThread.deactivate()
+                motionThread_IR.set_activation_time(0.25) #will wait 15 sec to activate
+                motionThread_IR.deactivate()
                 systemActive = True
                 
             buttonMonitor.reset_status()
@@ -434,7 +376,7 @@ if __name__ == "__main__":
             if not systemActive:
                 desiredLEDmode = 0
             else:
-                desiredLEDmode = motionThread.delay_status
+                desiredLEDmode = motionThread_IR.delay_status
                 
             #switching LED mode if necessary
             if desiredLEDmode != ledMonitor.get_mode():

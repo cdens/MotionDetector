@@ -1,4 +1,11 @@
-This is a quick python script that uses a motion detector to play audio from a speaker whenever someone moves near the sensor. It uses an HC SR-501 PIR (or similar) motion-detecting sensor (see [https://lastminuteengineers.com/pir-sensor-arduino-tutorial/](https://lastminuteengineers.com/pir-sensor-arduino-tutorial/) for a quick tutorial) to trigger the system to play audio.
+This is a quick python script that uses a motion detector to play audio from a speaker whenever someone moves near the sensor. 
+
+There are two versions of this script:
+
+ * `motion_detector_IR.py` uses an HC SR-501 PIR (or similar) motion-detecting sensor (see [https://lastminuteengineers.com/pir-sensor-arduino-tutorial/](https://lastminuteengineers.com/pir-sensor-arduino-tutorial/) for a quick tutorial) to trigger the system to play audio.
+
+ * `motion_detector.py` uses an HC-SR04 (or similar) ultrasonic range detector (see [https://thepihut.com/blogs/raspberry-pi-tutorials/hc-sr04-ultrasonic-range-sensor-on-the-raspberry-pi](https://thepihut.com/blogs/raspberry-pi-tutorials/hc-sr04-ultrasonic-range-sensor-on-the-raspberry-pi) for a tutorial) to detect movement of an object directly in front of the sensor.
+
 
 The motion detector and audio player are both implemented as separate threads so the main event loop can handle inputs from them while also monitoring a connected button for signal to reset the motion detector and control an LED whose rate of blinking indicates the status of the system.
 
