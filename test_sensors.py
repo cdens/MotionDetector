@@ -55,11 +55,18 @@ def test_IR_motion(motionPin):
     
 if __name__ == "__main__":
     
-    # IR MOTION DETECTOR
-    # motionPin = 12
-    #test_IR_motion(motionPin)
+    GPIO.setmode(GPIO.BOARD)
     
-    # AUDIO RANGE MOTION DETECTOR
-    echoPin = 35 
-    trigPin = 36 
-    test_audio_range(echoPin, trigPin)
+    
+    try:
+        # IR MOTION DETECTOR
+        # motionPin = 12
+        #test_IR_motion(motionPin)
+        
+        # AUDIO RANGE MOTION DETECTOR
+        echoPin = 35 
+        trigPin = 36 
+        test_audio_range(echoPin, trigPin)
+        
+    except:
+        GPIO.cleanup()
