@@ -14,7 +14,7 @@ import time
 import subprocess
 import threading
 import logging
-
+import numpy as np
 
 def setup():
     GPIO.setmode(GPIO.BOARD)
