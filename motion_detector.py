@@ -250,7 +250,7 @@ class MotionThread(threading.Thread):
         distance_cm = np.round(17150.0 * pulselen, 1) #round to nearest mm (error is 3 mm anyways)
         
         if distance_cm > 100: #setting max range to 1 m
-        distance_cm = 200
+            distance_cm = 200
         
         return distance_cm
         
