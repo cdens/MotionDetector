@@ -250,7 +250,7 @@ class MotionThread(threading.Thread):
         distance_cm = np.round(17150.0 * pulselen, 1) #round to nearest mm (error is 3 mm anyways)
         
         if distance_cm > 100: #setting max range to 1 m
-            distance_cm == 100
+        distance_cm = 200
         
         return distance_cm
         
@@ -393,7 +393,7 @@ if __name__ == "__main__":
     #initiating motion sensor
     echoPin = 35 #returns echo time
     trigPin = 36 #triggers range detector observation
-    distThresh = 5 #distance change in cm to trigger motion detector
+    distThresh = 10 #distance change in cm to trigger motion detector
     motionThread = MotionThread(echoPin=echoPin, trigPin=trigPin, distThresh=distThresh, Nobs=20, initial_delay=0.5, refresh_activation_limit=10)
     motionThread.start()
     
