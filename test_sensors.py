@@ -5,6 +5,8 @@ import time
 
 def test_audio_range(echoPin, trigPin):
     
+    from motion_detector import MotionThread
+    
     distThresh = 5 #distance change threshold for motion detection in cm
     motionThread = MotionThread(echoPin=echoPin, trigPin=trigPin, distThresh=distThresh, Nobs=20, initial_delay=0.1, refresh_activation_limit=0)
     motionThread.start()
@@ -31,6 +33,8 @@ def test_audio_range(echoPin, trigPin):
     
     
 def test_IR_motion(motionPin):
+    
+    from motion_detector_IR import MotionThread_IR
     
     #initiating motion sensor
     motionThread_IR = MotionThread_IR(pin=motionPin, initial_delay=0.1, refresh_activation_limit=0) #no refresh
