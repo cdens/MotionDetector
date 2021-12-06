@@ -2,6 +2,9 @@
 # code to test the IR motion detector or ultrasonic range detector and supporting code
 
 import time
+import RPi.GPIO as GPIO
+import numpy as np
+import traceback
 
 def test_audio_range(echoPin, trigPin):
     
@@ -68,5 +71,6 @@ if __name__ == "__main__":
         trigPin = 36 
         test_audio_range(echoPin, trigPin)
         
-    except:
+    except Exception as e:
         GPIO.cleanup()
+        traceback.print_exc()
